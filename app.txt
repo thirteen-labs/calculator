@@ -1,0 +1,796 @@
+Absolutely. For a **calculator app**, I’d use the same architecture idea: **every user interaction is an action that flows through an expression engine, state manager, history, and UI**.
+
+# 🧮 Calculator App — Full Action Map
+
+```text
+                         CALCULATOR APP
+                               │
+          ┌────────────────────┼────────────────────┐
+          │                    │                    │
+          ▼                    ▼                    ▼
+       INPUT               CALCULATION           DATA
+          │                    │                    │
+    ┌─────┼─────┐        ┌─────┼─────┐       ┌─────┼─────┐
+    ▼     ▼     ▼        ▼     ▼     ▼       ▼     ▼     ▼
+ Numbers Operators      Parser Engine Result History Memory
+    │     │     │        │     │     │       │     │     │
+    └─────┴─────┘        └─────┴─────┘       └─────┴─────┘
+                               │
+                               ▼
+                            DISPLAY
+                               │
+                  ┌────────────┼────────────┐
+                  ▼            ▼            ▼
+              Expression    Result       Preview
+```
+
+# 1. App Entry
+
+```text
+APP OPEN
+   ↓
+Initialize calculator state
+   ↓
+Load preferences
+   ↓
+Load memory
+   ↓
+Load history
+   ↓
+Restore previous expression? 
+   ├── YES → restore
+   └── NO  → 0
+   ↓
+CALCULATOR
+```
+
+---
+
+# 2. Input Action Map
+
+## Numbers
+
+```text
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+```
+
+Each produces:
+
+```text
+PRESS NUMBER
+     ↓
+Validate input
+     ↓
+Append digit
+     ↓
+Update expression
+     ↓
+Update preview
+     ↓
+Render display
+```
+
+Example:
+
+```text
+1 → 12 → 123 → 1234
+```
+
+---
+
+# 3. Decimal
+
+```text
+DECIMAL
+   ↓
+Current number already has "."?
+   ├── YES → ignore
+   └── NO  → append "."
+```
+
+Example:
+
+```text
+12
+ ↓
+12.
+ ↓
+12.5
+```
+
+---
+
+# 4. Operators
+
+```text
+ADD        +
+SUBTRACT   −
+MULTIPLY   ×
+DIVIDE     ÷
+MODULO     %
+```
+
+Flow:
+
+```text
+OPERATOR PRESSED
+       ↓
+Validate current expression
+       ↓
+Operator already pending?
+   ├── YES → replace operator
+   └── NO
+       ↓
+Append operator
+       ↓
+Wait for next operand
+```
+
+Example:
+
+```text
+25
+ ↓
++
+ ↓
+10
+```
+
+Expression:
+
+```text
+25 + 10
+```
+
+---
+
+# 5. Equals
+
+```text
+=
+↓
+Validate expression
+↓
+Tokenize
+↓
+Parse
+↓
+Evaluate
+↓
+Handle errors
+↓
+Format result
+↓
+Display result
+↓
+Save history
+↓
+Set result as current value
+```
+
+Example:
+
+```text
+25 + 10 × 2
+        ↓
+       45
+```
+
+---
+
+# 6. Clear System
+
+I'd have multiple levels.
+
+```text
+CLEAR
+├── AC → All Clear
+├── C  → Clear current input
+├── CE → Clear entry
+└── RESET → Reset calculator state
+```
+
+### AC
+
+```text
+Expression → ""
+Result → null
+Operator → null
+Error → null
+```
+
+### Backspace
+
+```text
+BACKSPACE
+    ↓
+Remove last character
+    ↓
+Recalculate preview
+```
+
+Example:
+
+```text
+1234
+ ↓
+123
+ ↓
+12
+```
+
+---
+
+# 7. Parentheses
+
+```text
+(
+)
+```
+
+Flow:
+
+```text
+OPEN PAREN
+   ↓
+Insert "("
+   ↓
+Track nesting level
+```
+
+Example:
+
+```text
+(25 + 5) × 2
+```
+
+Parser:
+
+```text
+(
+ ├── 25
+ ├── +
+ └── 5
+)
+×
+2
+```
+
+---
+
+# 8. Scientific Calculator Layer
+
+The basic calculator can expand into:
+
+```text
+SCIENTIFIC
+│
+├── Powers
+│   ├── x²
+│   ├── x³
+│   ├── xʸ
+│   └── √x
+│
+├── Trigonometry
+│   ├── sin
+│   ├── cos
+│   ├── tan
+│   ├── asin
+│   ├── acos
+│   └── atan
+│
+├── Logarithms
+│   ├── log
+│   ├── ln
+│   └── log₂
+│
+├── Constants
+│   ├── π
+│   └── e
+│
+├── Combinatorics
+│   ├── n!
+│   ├── nCr
+│   └── nPr
+│
+└── Advanced
+    ├── Abs
+    ├── Floor
+    ├── Ceiling
+    └── Sign
+```
+
+---
+
+# 9. Memory System
+
+Classic calculator memory:
+
+```text
+MC → Memory Clear
+MR → Memory Recall
+M+ → Memory Add
+M− → Memory Subtract
+MS → Memory Store
+```
+
+Flow:
+
+```text
+USER VALUE
+   ↓
+MEMORY ACTION
+   ↓
+Memory State
+   ↓
+Persist
+```
+
+Example:
+
+```text
+100
+ ↓
+MS
+
+Memory = 100
+
+50
+ ↓
+M+
+
+Memory = 150
+```
+
+---
+
+# 10. History System
+
+Every completed calculation becomes a history entry.
+
+```text
+CALCULATION
+     ↓
+RESULT
+     ↓
+HISTORY
+```
+
+Example:
+
+```text
+25 × 4
+= 100
+
+12 + 8
+= 20
+
+100 ÷ 5
+= 20
+```
+
+History actions:
+
+```text
+VIEW_HISTORY
+REUSE_CALCULATION
+COPY_RESULT
+DELETE_ENTRY
+CLEAR_HISTORY
+FAVORITE_ENTRY
+```
+
+### Reuse
+
+```text
+History
+ ↓
+Tap calculation
+ ↓
+Restore expression
+ ↓
+Edit / calculate
+```
+
+---
+
+# 11. Expression Engine
+
+This is the heart of the app.
+
+```text
+USER INPUT
+    ↓
+TOKENIZER
+    ↓
+TOKENS
+    ↓
+PARSER
+    ↓
+AST / EXPRESSION TREE
+    ↓
+EVALUATOR
+    ↓
+NUMBER
+    ↓
+FORMATTER
+    ↓
+DISPLAY
+```
+
+Example:
+
+```text
+12 + 5 × 3
+```
+
+becomes:
+
+```text
+       +
+      / \
+    12   ×
+        / \
+       5   3
+```
+
+Result:
+
+```text
+27
+```
+
+This is much safer than trying to calculate directly from button presses.
+
+---
+
+# 12. Error System
+
+Every calculation should pass through error handling.
+
+```text
+CALCULATE
+   ↓
+VALID?
+ ├── NO → INPUT_ERROR
+ │
+ └── YES
+      ↓
+SAFE TO EVALUATE?
+ ├── NO → MATH_ERROR
+ └── YES
+      ↓
+RESULT
+```
+
+Errors:
+
+```text
+DIVISION_BY_ZERO
+INVALID_EXPRESSION
+MISSING_OPERAND
+UNMATCHED_PARENTHESES
+OVERFLOW
+UNDERFLOW
+INVALID_FUNCTION
+DOMAIN_ERROR
+SYNTAX_ERROR
+NUMBER_TOO_LARGE
+```
+
+Instead of crashing:
+
+```text
+Error
+Division by zero
+```
+
+Then:
+
+```text
+BACKSPACE
+CLEAR
+EDIT EXPRESSION
+```
+
+---
+
+# 13. Display Architecture
+
+Modern calculator:
+
+```text
+┌─────────────────────────────────┐
+│                                 │
+│        25 + 15 × 4              │
+│                                 │
+│                    = 85         │
+│                                 │
+├─────────────────────────────────┤
+│  History  Memory  Scientific    │
+├─────────────────────────────────┤
+│                                 │
+│    ( )    %    ⌫    ÷           │
+│                                 │
+│    7      8     9    ×           │
+│                                 │
+│    4      5     6    −           │
+│                                 │
+│    1      2     3    +           │
+│                                 │
+│    0      .     =               │
+│                                 │
+└─────────────────────────────────┘
+```
+
+---
+
+# 14. User Action Pipeline
+
+Every calculator action follows:
+
+```text
+                USER ACTION
+                     │
+                     ▼
+                DISPATCH
+                     │
+                     ▼
+              INPUT VALIDATOR
+                     │
+                     ▼
+              CALCULATOR STATE
+                     │
+          ┌──────────┼──────────┐
+          ▼          ▼          ▼
+       Expression  Memory     History
+          │
+          ▼
+      EXPRESSION ENGINE
+          │
+      ┌───┴────┐
+      ▼        ▼
+    Parse    Evaluate
+      │        │
+      └───┬────┘
+          ▼
+       FORMATTER
+          │
+          ▼
+        RESULT
+          │
+    ┌─────┼─────┐
+    ▼     ▼     ▼
+ Display History Persistence
+```
+
+---
+
+# 15. Master Action Registry
+
+I'd define the calculator around explicit actions:
+
+```text
+INPUT
+├── INPUT_DIGIT
+├── INPUT_DECIMAL
+├── INPUT_OPERATOR
+├── INPUT_FUNCTION
+├── INPUT_CONSTANT
+├── INPUT_PARENTHESES
+└── INPUT_NEGATIVE
+
+EDITING
+├── BACKSPACE
+├── CLEAR_ENTRY
+├── CLEAR
+├── RESET
+└── UNDO
+└── REDO
+
+CALCULATION
+├── EVALUATE
+├── PREVIEW
+└── REPEAT_LAST_OPERATION
+
+MEMORY
+├── MEMORY_CLEAR
+├── MEMORY_RECALL
+├── MEMORY_STORE
+├── MEMORY_ADD
+└── MEMORY_SUBTRACT
+
+HISTORY
+├── HISTORY_ADD
+├── HISTORY_OPEN
+├── HISTORY_REUSE
+├── HISTORY_DELETE
+├── HISTORY_CLEAR
+└── HISTORY_COPY
+
+SCIENTIFIC
+├── POWER
+├── ROOT
+├── FACTORIAL
+├── LOG
+├── LN
+├── SIN
+├── COS
+├── TAN
+└── ABS
+
+DISPLAY
+├── TOGGLE_SCIENTIFIC
+├── TOGGLE_EXPRESSION
+├── TOGGLE_RESULT_FORMAT
+└── TOGGLE_FULLSCREEN
+
+SETTINGS
+├── SET_PRECISION
+├── SET_ANGLE_MODE
+├── SET_THEME
+├── SET_NUMBER_FORMAT
+└── SET_HAPTICS
+```
+
+---
+
+# 16. State Model
+
+I'd keep the state roughly like:
+
+```ts
+type CalculatorState = {
+  expression: string;
+  result: string | null;
+
+  input: string;
+
+  mode: "basic" | "scientific";
+
+  angleMode: "DEG" | "RAD" | "GRAD";
+
+  memory: number | null;
+
+  history: HistoryEntry[];
+
+  error: CalculatorError | null;
+
+  isEvaluating: boolean;
+
+  precision: number;
+
+  lastOperation?: {
+    operator: string;
+    operand: number;
+  };
+};
+```
+
+Then:
+
+```text
+UI
+ ↓
+Action
+ ↓
+Reducer / Controller
+ ↓
+Expression Engine
+ ↓
+State
+ ↓
+UI
+```
+
+---
+
+# 17. Advanced Version
+
+If we're making this a **modern AI-age calculator**, I'd add a separate intelligence layer:
+
+```text
+                    CALCULATOR
+                         │
+            ┌────────────┴────────────┐
+            ▼                         ▼
+       NORMAL ENGINE              AI ENGINE
+            │                         │
+       Exact Math               Natural Language
+            │                         │
+            │                    "15% of 850"
+            │                         │
+            │                    "sqrt 144"
+            │                         │
+            │                    "convert 20 USD"
+            │                         │
+            └────────────┬────────────┘
+                         ▼
+                  RESULT VALIDATOR
+                         │
+                         ▼
+                     DISPLAY
+```
+
+Important distinction: **AI interprets the request; the deterministic math engine performs the actual calculation.**
+
+So:
+
+> "What's 18% of 2500?"
+
+becomes:
+
+```text
+AI/NLP
+ ↓
+18 / 100 × 2500
+ ↓
+Math Engine
+ ↓
+450
+```
+
+That gives you the "AI calculator" experience without trusting an LLM to perform arithmetic.
+
+---
+
+# 🧠 Final Architecture
+
+The complete application becomes:
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                    CALCULATOR APP                       │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ UI                                                      │
+│ │                                                       │
+│ ├── Basic Calculator                                    │
+│ ├── Scientific Calculator                               │
+│ ├── History                                             │
+│ ├── Memory                                              │
+│ ├── Converter                                           │
+│ └── Settings                                            │
+│                                                         │
+│                         ↓                               │
+│                                                         │
+│ ACTION / STATE LAYER                                    │
+│ │                                                       │
+│ ├── Input Controller                                    │
+│ ├── Calculator Controller                               │
+│ ├── Memory Controller                                   │
+│ ├── History Controller                                  │
+│ └── Settings Controller                                 │
+│                         ↓                               │
+│                                                         │
+│ CALCULATION ENGINE                                      │
+│ │                                                       │
+│ ├── Tokenizer                                           │
+│ ├── Parser                                              │
+│ ├── Expression Tree                                    │
+│ ├── Evaluator                                           │
+│ ├── Scientific Functions                                │
+│ └── Formatter                                           │
+│                         ↓                               │
+│                                                         │
+│ DATA                                                    │
+│ │                                                       │
+│ ├── SQLite → history / saved calculations               │
+│ ├── MMKV → settings / preferences / fast state          │
+│ └── Memory → active calculation                         │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**The key design principle is the same as the music player:** don't make the UI the brain. The UI emits actions, the calculator engine processes them, state changes, and the UI reflects the new state.
+
+That gives you a calculator that can start simple but scale into **scientific + programmer + converter + finance + AI/NL calculator** without needing to rewrite the foundation.
