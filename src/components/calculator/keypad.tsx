@@ -30,6 +30,10 @@ export function Keypad({
     state.mode === 'scientific'
       ? [
           [
+            { label: '+/−', action: { type: 'INPUT_NEGATIVE' } },
+            { label: state.angleMode, action: { type: 'SET_ANGLE_MODE', mode: state.angleMode === 'DEG' ? 'RAD' : state.angleMode === 'RAD' ? 'GRAD' : 'DEG' } },
+          ],
+          [
             { label: 'sin', action: { type: 'INPUT_FUNCTION', fn: 'sin' } },
             { label: 'cos', action: { type: 'INPUT_FUNCTION', fn: 'cos' } },
             { label: 'tan', action: { type: 'INPUT_FUNCTION', fn: 'tan' } },
@@ -54,10 +58,18 @@ export function Keypad({
   const minus = String.fromCharCode(8722);
   const div = String.fromCharCode(247);
 
+  const opens = (state.expression.match(/\(/g) ?? []).length;
+  const closes = (state.expression.match(/\)/g) ?? []).length;
+  const lastChar = state.expression.trim().slice(-1);
+  const canCloseParens =
+    opens > closes &&
+    ((lastChar >= '0' && lastChar <= '9') || lastChar === ')' || lastChar === '.' || lastChar === '!');
+  const parenAction: Action = { type: 'INPUT_PAREN', paren: canCloseParens ? ')' : '(' };
+
   const basicRows: { label: string; action: Action; bg?: string }[][] = [
     [
       { label: 'AC', action: { type: 'CLEAR' }, bg: 'function' },
-      { label: '( )', action: { type: 'INPUT_PAREN', paren: '(' } },
+      { label: '( )', action: parenAction },
       { label: '%', action: { type: 'INPUT_OPERATOR', operator: '%' }, bg: 'function' },
       { label: div, action: { type: 'INPUT_OPERATOR', operator: '÷' }, bg: 'accent' },
     ],
@@ -80,7 +92,7 @@ export function Keypad({
       { label: '+', action: { type: 'INPUT_OPERATOR', operator: '+' }, bg: 'accent' },
     ],
     [
-      { label: '0', action: { type: 'INPUT_DIGIT', digit: '0' }, bg: 'wide' },
+      { label: '0', action: { type: 'INPUT_DIGIT', digit: '0' } },
       { label: '.', action: { type: 'INPUT_DECIMAL' } },
       { label: '=', action: { type: 'EVALUATE' }, bg: 'accent' },
     ],

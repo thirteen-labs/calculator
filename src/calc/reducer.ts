@@ -212,7 +212,6 @@ function pushHistory(state: CalculatorState, expression: string, result: string)
 export function calculatorReducer(state: CalculatorState, action: Action): CalculatorState {
   if (action.type === 'UNDO' || action.type === 'REDO') {
     const stack = action.type === 'UNDO' ? state.past : state.future;
-    const target = state.past;
     if (stack.length === 0) return state;
     const snapshot = stack[stack.length - 1];
     const remaining = stack.slice(0, -1);

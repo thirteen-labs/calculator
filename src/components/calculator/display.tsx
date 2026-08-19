@@ -10,7 +10,7 @@ export function Display({ state, theme }: Props) {
   const expression = state.expression || '0';
   const displayResult = state.error
     ? state.error.message
-    : state.result ?? state.preview ?? '';
+    : state.preview ?? state.result ?? '';
 
   return (
     <Column alignment="end" spacing={0} style={styles.container}>
