@@ -1,7 +1,8 @@
 import type { Action } from './actions';
 import { CalcError } from './errors';
 import { evaluateExpression, formatNumber, getLastOperation } from './engine';
-import type { CalculatorState, Snapshot } from './types';
+import type { CalculatorState, Snapshot, HistoryEntry } from './types';
+import { saveHistoryEntry, loadHistoryEntries, deleteHistoryEntry, toggleHistoryFavorite, clearHistory } from './history-storage';
 
 const MAX_UNDO = 100;
 
@@ -333,6 +334,9 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
     }
 
     case 'RESET': {
+      const storedEntries = loadHistoryEntries();
+      // History loaded from storage; UI will reflect entries
+      // when new calculations are performed and saved
       return {
         ...state,
         expression: '',
@@ -363,6 +367,17 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
           error: null,
           lastOperation,
         };
+        const historyEntry: Omit<HistoryEntry, 'id'> = {
+          expression,
+          result,
+          timestamp: Date.now(),
+          favorite: false,
+        };
+        saveHistoryEntry(historyEntry);
+        record({
+          ...next,
+          history: [{ id: `${Date.now()}.${Math.random().toString(36).slice(2, 8)}`, ...historyEntry }, ...state.history].slice(0, 100),
+        });
         return record(pushHistory(next, expression, result));
       } catch (error) {
         const calcError =

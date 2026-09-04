@@ -199,8 +199,14 @@ export type ThemeOption = {
 };
 
 /** Options for the theme picker. `'system'` previews the two base faces. */
-export const ThemeOptions: ThemeOption[] = [
+const baseThemes: ThemeOption[] = [
   { id: 'system', label: 'Follow device', light: Themes.light.light, dark: Themes.dark.dark },
+  { id: 'light', label: 'Light', light: Themes.light.light, dark: Themes.light.dark },
+  { id: 'dark', label: 'Dark', light: Themes.dark.light, dark: Themes.dark.dark },
+];
+
+export const ThemeOptions: ThemeOption[] = [
+  ...baseThemes,
   ...ThemeIds.map((id) => ({
     id,
     label: Themes[id].label,

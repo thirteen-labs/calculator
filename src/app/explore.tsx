@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useCalculator } from '@/hooks/use-calculator';
 
 export default function SettingsScreen() {
   const safeAreaInsets = useSafeAreaInsets();
@@ -14,6 +15,7 @@ export default function SettingsScreen() {
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
   };
   const theme = useTheme();
+  const { state } = useCalculator();
 
   return (
     <ScrollView
@@ -43,6 +45,21 @@ export default function SettingsScreen() {
               <ThemedText type="small" themeColor="textSecondary" style={styles.aboutVersion}>
                 Version 1.0.0
               </ThemedText>
+            </ThemedView>
+          </ThemedView>
+
+          <ThemedView style={styles.themeSection}>
+            <ThemedText type="smallBold">History</ThemedText>
+            <ThemedView type="backgroundElement" style={styles.historyPanel}>
+              {state.history.length === 0 ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  No calculations yet
+                </ThemedText>
+              ) : (
+                <ThemedText type="small" themeColor="textSecondary">
+                  {state.history.length} calculations
+                </ThemedText>
+              )}
             </ThemedView>
           </ThemedView>
         </ThemedView>
@@ -88,5 +105,10 @@ const styles = StyleSheet.create({
   },
   aboutVersion: {
     marginTop: Spacing.one,
+  },
+  historyPanel: {
+    padding: Spacing.three,
+    borderRadius: Spacing.three,
+    gap: Spacing.two,
   },
 });

@@ -64,14 +64,14 @@ export function ThemePicker() {
 const styles = StyleSheet.create({
   container: {
     borderRadius: Spacing.three,
-    padding: Spacing.one,
+    padding: Spacing.two,
     gap: Spacing.half,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.two + Spacing.one,
   },
