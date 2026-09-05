@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text } from '@expo/ui';
+import { Host } from '@expo/ui';
 import { View, useWindowDimensions, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCalculator } from '@/hooks/use-calculator';
@@ -28,8 +28,8 @@ export default function Calculator() {
   const smallBtnSize = (keypadWidth - spacing * 7) / 6;
 
   return (
-    <View style={styles.host}>
-      <View style={styles.container}>
+    <Host style={[styles.host, { backgroundColor: theme.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <Display state={state} theme={theme} />
         <PanelBar
           panel={panel}
@@ -50,7 +50,7 @@ export default function Calculator() {
           bottomInset={insets.bottom + BottomTabInset}
         />
       </View>
-    </View>
+    </Host>
   );
 }
 

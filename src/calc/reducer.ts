@@ -367,18 +367,15 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
           error: null,
           lastOperation,
         };
-        const historyEntry: Omit<HistoryEntry, 'id'> = {
+        const entry: HistoryEntry = {
+          id: createId(),
           expression,
           result,
           timestamp: Date.now(),
           favorite: false,
         };
-        saveHistoryEntry(historyEntry);
-        record({
-          ...next,
-          history: [{ id: `${Date.now()}.${Math.random().toString(36).slice(2, 8)}`, ...historyEntry }, ...state.history].slice(0, 100),
-        });
-        return record(pushHistory(next, expression, result));
+        saveHistoryEntry(entry);
+        return record({ ...next, history: [entry, ...state.history].slice(0, 100) });
       } catch (error) {
         const calcError =
           error instanceof CalcError

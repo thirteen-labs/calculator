@@ -2,18 +2,21 @@ import type { HistoryEntry } from './types';
 
 const HISTORY_STORAGE_KEY = 'calculator.history.v1';
 
-export function saveHistoryEntry(entry: Omit<HistoryEntry, 'id'>): void {
+export function saveHistoryEntry(entry: HistoryEntry | Omit<HistoryEntry, 'id'>): void {
   try {
-    const stored = typeof localStorage !== 'undefined' 
-      ? localStorage.getItem(HISTORY_STORAGE_KEY) 
+    const stored = typeof localStorage !== 'undefined'
+      ? localStorage.getItem(HISTORY_STORAGE_KEY)
       : null;
-    const existing: HistoryEntry[] = stored 
-      ? JSON.parse(stored) 
+    const existing: HistoryEntry[] = stored
+      ? JSON.parse(stored)
       : [];
-    const newEntry: HistoryEntry = {
-      ...entry,
-      id: `${Date.now()}.${Math.random().toString(36).slice(2, 8)}`,
-    };
+    const newEntry: HistoryEntry =
+      'id' in entry && typeof (entry as HistoryEntry).id === 'string'
+        ? (entry as HistoryEntry)
+        : {
+            ...entry,
+            id: `${Date.now()}.${Math.random().toString(36).slice(2, 8)}`,
+          };
     const updated = [newEntry, ...existing].slice(0, 100); // Keep last 100
     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
   } catch (e) {
