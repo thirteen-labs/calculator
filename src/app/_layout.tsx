@@ -3,6 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
+import { CalculatorProvider } from '@/components/calculator-provider';
 import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/components/theme-provider';
 
 SplashScreen.preventAutoHideAsync();
@@ -13,7 +14,9 @@ function NavigationTheme() {
   return (
     <ThemeProvider value={mode === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
-      <AppTabs />
+      <CalculatorProvider>
+        <AppTabs />
+      </CalculatorProvider>
     </ThemeProvider>
   );
 }

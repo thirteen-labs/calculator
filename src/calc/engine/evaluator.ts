@@ -31,9 +31,17 @@ function radToAngle(value: number, mode: AngleMode): number {
   }
 }
 
+/** 170! is the largest factorial representable as a finite double. */
+const MAX_FACTORIAL = 170;
+
 function factorial(n: number): number {
   if (!Number.isInteger(n) || n < 0) {
     throw new CalcError('DOMAIN_ERROR');
+  }
+  // Without this guard the loop below runs once per unit of n, and n is
+  // user-typable (e.g. `factorial(999999999)`), which locks the JS thread.
+  if (n > MAX_FACTORIAL) {
+    throw new CalcError('OVERFLOW');
   }
   let result = 1;
   for (let i = 2; i <= n; i += 1) {
@@ -157,10 +165,17 @@ export function evaluateExpression(expression: string, options: EvaluateOptions 
   return evaluateNode(node, options.angleMode ?? 'RAD');
 }
 
-/** The last binary operator and its right operand value, for repeat operations. */
+/**
+ * The last binary operator and its right operand value, for repeat operations.
+ * `angleMode` must match the one used to evaluate the expression, otherwise a
+ * trailing trig operand is captured in the wrong unit (e.g. `2 + sin(30)` in
+ * DEG would repeat with sin(30 rad) instead of 0.5).
+ */
 export function getLastOperation(
-  expression: string
+  expression: string,
+  options: EvaluateOptions = {}
 ): { operator: BinaryOperator; operand: string } | null {
+  const mode = options.angleMode ?? 'RAD';
   const node = parseExpression(expression);
   if (node.type !== 'binary') return null;
 
@@ -179,7 +194,7 @@ export function getLastOperation(
 
   let value: number;
   try {
-    value = evaluateNode(right);
+    value = evaluateNode(right, mode);
   } catch {
     return null;
   }

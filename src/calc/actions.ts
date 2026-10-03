@@ -1,7 +1,6 @@
 import type {
   AngleMode,
   BinaryOperator,
-  CalculatorMode,
   FunctionName,
 } from './types';
 
@@ -14,7 +13,8 @@ export type Action =
   | { type: 'INPUT_OPERATOR'; operator: BinaryOperator }
   | { type: 'INPUT_FUNCTION'; fn: FunctionName }
   | { type: 'INPUT_CONSTANT'; constant: 'PI' | 'E' }
-  | { type: 'INPUT_PAREN'; paren: '(' | ')' }
+  /** Omit `paren` to let the reducer pick via `nextParen` (the `( )` key). */
+  | { type: 'INPUT_PAREN'; paren?: '(' | ')' }
   | { type: 'INPUT_NEGATIVE' }
 
   // EDITING
@@ -44,6 +44,5 @@ export type Action =
 
   // DISPLAY / MODE
   | { type: 'TOGGLE_SCIENTIFIC' }
-  | { type: 'SET_MODE'; mode: CalculatorMode }
   | { type: 'SET_ANGLE_MODE'; mode: AngleMode }
   | { type: 'SET_PRECISION'; precision: number };

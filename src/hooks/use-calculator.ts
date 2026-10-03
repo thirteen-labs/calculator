@@ -1,11 +1,10 @@
-import { useCallback, useReducer } from 'react';
+import { useCallback } from 'react';
 
-import { calculatorReducer, initialState } from '@/calc';
+import { useCalculatorContext } from '@/components/calculator-provider';
 import type { Action } from '@/calc';
 
 export function useCalculator() {
-  const [state, dispatch] = useReducer(calculatorReducer, initialState);
-
+  const { state, dispatch } = useCalculatorContext();
   const dispatchAndForget = useCallback((action: Action) => dispatch(action), [dispatch]);
 
   return { state, dispatch: dispatchAndForget };

@@ -52,17 +52,15 @@ function isDigit(ch: string): boolean {
   return DIGITS.includes(ch);
 }
 
-function isLetter(ch: string): boolean {
-  return /[a-zA-Z]/.test(ch);
-}
-
 function isFunctionStart(ch: string): boolean {
   return /[a-zA-Z]/.test(ch);
 }
 
-function matchFunction(input: string, index: number): string | null {
-  const sorted = [...FUNCTIONS].sort((a, b) => b.length - a.length);
-  for (const name of sorted) {
+/** Function names longest-first, so `log2` matches before `log`. Sorted once. */
+const FUNCTIONS_BY_LENGTH = [...FUNCTIONS].sort((a, b) => b.length - a.length);
+
+function matchFunction(input: string, index: number): FunctionName | null {
+  for (const name of FUNCTIONS_BY_LENGTH) {
     if (input.slice(index, index + name.length).toLowerCase() === name) {
       return name;
     }
@@ -103,7 +101,9 @@ export function tokenize(input: string): Token[] {
             isDigit(input[i + 2]);
           if (nextIsDigit || nextIsSignedDigit) {
             seenExponent = true;
-            i += 1;
+            // Consume the sign too, otherwise the loop stops on it and leaves
+            // a bare "1.5e" that parses as NaN.
+            i += nextIsSignedDigit ? 2 : 1;
           } else {
             break;
           }
@@ -148,7 +148,7 @@ export function tokenize(input: string): Token[] {
     if (isFunctionStart(ch)) {
       const fn = matchFunction(input, i);
       if (fn !== null) {
-        tokens.push({ type: 'function', value: fn as FunctionName });
+        tokens.push({ type: 'function', value: fn });
         i += fn.length;
         continue;
       }
@@ -160,7 +160,7 @@ export function tokenize(input: string): Token[] {
         continue;
       }
 
-      if (ch.toLowerCase() === 'e' && !isLetter(input[i + 1] ?? '')) {
+      if (ch.toLowerCase() === 'e' && !isFunctionStart(input[i + 1] ?? '')) {
         tokens.push({ type: 'constant', value: 'E' });
         i += 1;
         continue;

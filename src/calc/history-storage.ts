@@ -1,74 +1,70 @@
+// Installs the SQLite-backed `localStorage` on native. Documented as a no-op on
+// web (where the browser already provides it) and safe to import more than once.
+import 'expo-sqlite/localStorage/install';
+
 import type { HistoryEntry } from './types';
+import { MAX_HISTORY } from './state';
 
 const HISTORY_STORAGE_KEY = 'calculator.history.v1';
 
-export function saveHistoryEntry(entry: HistoryEntry | Omit<HistoryEntry, 'id'>): void {
+const MAX_STORED_ENTRIES = MAX_HISTORY;
+
+function storage(): Storage | null {
   try {
-    const stored = typeof localStorage !== 'undefined'
-      ? localStorage.getItem(HISTORY_STORAGE_KEY)
-      : null;
-    const existing: HistoryEntry[] = stored
-      ? JSON.parse(stored)
-      : [];
-    const newEntry: HistoryEntry =
-      'id' in entry && typeof (entry as HistoryEntry).id === 'string'
-        ? (entry as HistoryEntry)
-        : {
-            ...entry,
-            id: `${Date.now()}.${Math.random().toString(36).slice(2, 8)}`,
-          };
-    const updated = [newEntry, ...existing].slice(0, 100); // Keep last 100
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
-  } catch (e) {
-    // Fail silently - in-memory state remains
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
   }
 }
 
-export function loadHistoryEntries(): HistoryEntry[] {
+function isHistoryEntry(value: unknown): value is HistoryEntry {
+  if (typeof value !== 'object' || value === null) return false;
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.id === 'string' &&
+    typeof entry.expression === 'string' &&
+    typeof entry.result === 'string' &&
+    typeof entry.timestamp === 'number' &&
+    typeof entry.favorite === 'boolean'
+  );
+}
+
+/**
+ * Persisted history, newest first. Storage is untrusted input (it can be
+ * corrupt, hand-edited, or left over from an older build), so every entry is
+ * validated and anything unrecognised is dropped rather than crashing a screen.
+ */
+export function loadHistory(): HistoryEntry[] {
+  const store = storage();
+  if (store === null) return [];
   try {
-    const stored = typeof localStorage !== 'undefined'
-      ? localStorage.getItem(HISTORY_STORAGE_KEY)
-      : null;
-    return stored ? JSON.parse(stored) : [];
+    const raw = store.getItem(HISTORY_STORAGE_KEY);
+    if (raw === null) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isHistoryEntry);
   } catch {
     return [];
   }
 }
 
-export function deleteHistoryEntry(id: string): void {
+/**
+ * Replaces persisted history with `entries`.
+ *
+ * The reducer is the single source of truth, so callers write the whole array
+ * rather than mutating storage per action. That keeps deletes, favourites,
+ * clears, undo/redo and repeat-operations consistent with what is on screen
+ * without every one of them having to remember to persist itself.
+ */
+export function saveHistory(entries: HistoryEntry[]): void {
+  const store = storage();
+  if (store === null) return;
   try {
-    const stored = typeof localStorage !== 'undefined'
-      ? localStorage.getItem(HISTORY_STORAGE_KEY)
-      : null;
-    if (!stored) return;
-    const existing: HistoryEntry[] = JSON.parse(stored);
-    const filtered = existing.filter((h) => h.id !== id);
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(filtered));
-  } catch {
-    // Fail silently
-  }
-}
-
-export function toggleHistoryFavorite(id: string, favorite: boolean): void {
-  try {
-    const stored = typeof localStorage !== 'undefined'
-      ? localStorage.getItem(HISTORY_STORAGE_KEY)
-      : null;
-    if (!stored) return;
-    const existing: HistoryEntry[] = JSON.parse(stored);
-    const updated = existing.map((h) =>
-      h.id === id ? { ...h, favorite } : h
+    store.setItem(
+      HISTORY_STORAGE_KEY,
+      JSON.stringify(entries.slice(0, MAX_STORED_ENTRIES))
     );
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
   } catch {
-    // Fail silently
-  }
-}
-
-export function clearHistory(): void {
-  try {
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify([]));
-  } catch {
-    // Fail silently
+    // Persistence is best-effort; in-memory state remains authoritative.
   }
 }

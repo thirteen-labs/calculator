@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { parseExpression, type ExprNode } from '../engine/parser';
+import { parseExpression } from '../engine/parser';
 import { CalcError } from '../errors';
 
 describe('parseExpression', () => {

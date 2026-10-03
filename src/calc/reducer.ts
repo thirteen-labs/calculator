@@ -1,8 +1,8 @@
 import type { Action } from './actions';
 import { CalcError } from './errors';
 import { evaluateExpression, formatNumber, getLastOperation } from './engine';
-import type { CalculatorState, Snapshot, HistoryEntry } from './types';
-import { saveHistoryEntry, loadHistoryEntries, deleteHistoryEntry, toggleHistoryFavorite, clearHistory } from './history-storage';
+import { MAX_HISTORY, initialState } from './state';
+import type { AngleMode, CalculatorState, Snapshot, HistoryEntry } from './types';
 
 const MAX_UNDO = 100;
 
@@ -12,6 +12,7 @@ function snapshotOf(state: CalculatorState): Snapshot {
   return {
     expression: state.expression,
     result: state.result,
+    resultValue: state.resultValue,
     preview: state.preview,
     mode: state.mode,
     angleMode: state.angleMode,
@@ -85,6 +86,43 @@ function appendOperator(expression: string, operator: string): string {
   return trimmed + ' ' + operator + ' ';
 }
 
+function countChar(expression: string, char: string): number {
+  let total = 0;
+  for (const c of expression) {
+    if (c === char) total += 1;
+  }
+  return total;
+}
+
+/** True when the text right before the caret can end an operand. */
+function endsOperand(expression: string): boolean {
+  const last = trimEnd(expression).slice(-1);
+  return (
+    (last >= '0' && last <= '9') ||
+    last === '.' ||
+    last === ')' ||
+    last === '!' ||
+    last === String.fromCharCode(960) /* π */ ||
+    last === 'e'
+  );
+}
+
+/**
+ * Which paren the combined `( )` key should insert next.
+ *
+ * This is the single source of truth for that key: the reducer applies it on
+ * `INPUT_PAREN` and the keypad renders it as the button's behaviour, so the two
+ * can no longer drift apart.
+ */
+export function nextParen(expression: string): '(' | ')' {
+  const trimmed = trimEnd(expression);
+  if (trimmed === '') return '(';
+  if (countChar(trimmed, '(') > countChar(trimmed, ')') && endsOperand(trimmed)) {
+    return ')';
+  }
+  return '(';
+}
+
 function appendParen(expression: string, paren: '(' | ')'): string {
   if (paren === '(') {
     const trimmed = trimEnd(expression);
@@ -100,9 +138,7 @@ function appendParen(expression: string, paren: '(' | ')'): string {
   if (trimmed === '') return expression;
   const last = trimmed[trimmed.length - 1];
   if (last === '(' || OPERATOR_CHARS.has(last)) return expression;
-  const open = (trimmed.match(/\(/g) ?? []).length;
-  const close = (trimmed.match(/\)/g) ?? []).length;
-  if (close >= open) return expression;
+  if (countChar(trimmed, ')') >= countChar(trimmed, '(')) return expression;
   return trimmed + ')';
 }
 
@@ -146,10 +182,7 @@ function clearEntry(expression: string): string {
 function appendFunction(expression: string, fn: string): string {
   const trimmed = trimEnd(expression);
   if (trimmed === '') return fn + '(';
-  const last = trimmed[trimmed.length - 1];
-  if ((last >= '0' && last <= '9') || last === ')' || last === '.') {
-    return trimmed + '×' + fn + '(';
-  }
+  if (endsOperand(trimmed)) return trimmed + '×' + fn + '(';
   return trimmed + fn + '(';
 }
 
@@ -157,17 +190,14 @@ function appendConstant(expression: string, constant: 'PI' | 'E'): string {
   const trimmed = trimEnd(expression);
   const text = constant === 'PI' ? 'π' : 'e';
   if (trimmed === '') return text;
-  const last = trimmed[trimmed.length - 1];
-  if ((last >= '0' && last <= '9') || last === ')' || last === '.' || last === '!') {
-    return trimmed + '×' + text;
-  }
+  if (endsOperand(trimmed)) return trimmed + '×' + text;
   return trimmed + text;
 }
 
 export function computePreview(
   expression: string,
   precision: number,
-  angleMode: 'DEG' | 'RAD' | 'GRAD'
+  angleMode: AngleMode
 ): string | null {
   if (trimEnd(expression) === '') return null;
   try {
@@ -181,33 +211,37 @@ export function computePreview(
 function computeResult(
   expression: string,
   precision: number,
-  angleMode: 'DEG' | 'RAD' | 'GRAD'
-): { result: string; lastOperation: CalculatorState['lastOperation'] } {
+  angleMode: AngleMode
+): { result: string; resultValue: number; lastOperation: CalculatorState['lastOperation'] } {
   const value = evaluateExpression(expression, { angleMode });
   const formatted = formatNumber(value, precision);
   let lastOperation: CalculatorState['lastOperation'];
   try {
-    const op = getLastOperation(expression);
+    const op = getLastOperation(expression, { angleMode });
     lastOperation = op ?? undefined;
   } catch {
     lastOperation = undefined;
   }
-  return { result: formatted, lastOperation };
+  return { result: formatted, resultValue: value, lastOperation };
 }
 
 export function createId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-function pushHistory(state: CalculatorState, expression: string, result: string): CalculatorState {
-  const entry = {
+function pushHistory(
+  state: CalculatorState,
+  expression: string,
+  result: string
+): CalculatorState {
+  const entry: HistoryEntry = {
     id: createId(),
     expression,
     result,
     timestamp: Date.now(),
     favorite: false,
   };
-  return { ...state, history: [entry, ...state.history] };
+  return { ...state, history: [entry, ...state.history].slice(0, MAX_HISTORY) };
 }
 
 export function calculatorReducer(state: CalculatorState, action: Action): CalculatorState {
@@ -286,7 +320,7 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
     }
 
     case 'INPUT_PAREN': {
-      const expression = appendParen(state.expression, action.paren);
+      const expression = appendParen(state.expression, action.paren ?? nextParen(state.expression));
       if (expression === state.expression) return state;
       return record({
         ...state,
@@ -330,21 +364,21 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
     }
 
     case 'CLEAR': {
-      return record({ ...state, expression: '', result: null, preview: null, error: null });
-    }
-
-    case 'RESET': {
-      const storedEntries = loadHistoryEntries();
-      // History loaded from storage; UI will reflect entries
-      // when new calculations are performed and saved
-      return {
+      return record({
         ...state,
         expression: '',
         result: null,
+        resultValue: null,
         preview: null,
-        error: null,
-        memory: null,
         lastOperation: undefined,
+        error: null,
+      });
+    }
+
+    case 'RESET': {
+      return {
+        ...initialState,
+        history: [],
         past: [],
         future: [],
       };
@@ -353,8 +387,11 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
     case 'EVALUATE': {
       if (state.expression.trim() === '') return state;
       const expression = trimEnd(state.expression);
+      // After `=` the expression *is* the result string, so pressing `=` again
+      // would re-evaluate that same string and log a pointless `4 = 4` entry.
+      if (state.result !== null && expression === state.result) return state;
       try {
-        const { result, lastOperation } = computeResult(
+        const { result, resultValue, lastOperation } = computeResult(
           expression,
           state.precision,
           state.angleMode
@@ -363,19 +400,12 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
           ...state,
           expression: result,
           result,
+          resultValue,
           preview: null,
           error: null,
           lastOperation,
         };
-        const entry: HistoryEntry = {
-          id: createId(),
-          expression,
-          result,
-          timestamp: Date.now(),
-          favorite: false,
-        };
-        saveHistoryEntry(entry);
-        return record({ ...next, history: [entry, ...state.history].slice(0, 100) });
+        return record(pushHistory(next, expression, result));
       } catch (error) {
         const calcError =
           error instanceof CalcError
@@ -394,7 +424,7 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
         ' ' +
         state.lastOperation.operand;
       try {
-        const { result, lastOperation } = computeResult(
+        const { result, resultValue, lastOperation } = computeResult(
           expression,
           state.precision,
           state.angleMode
@@ -403,6 +433,7 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
           ...state,
           expression: result,
           result,
+          resultValue,
           preview: null,
           error: null,
           lastOperation,
@@ -425,19 +456,13 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
 
     case 'MEMORY_RECALL': {
       if (state.memory === null) return state;
-      let memoryText = formatNumber(state.memory, state.precision);
+      const memoryText = formatNumber(state.memory, state.precision);
       const trimmed = trimEnd(state.expression);
-      if (trimmed !== '') {
-        const last = trimmed[trimmed.length - 1];
-        if ((last >= '0' && last <= '9') || last === ')' || last === '.') {
-          memoryText = '×' + memoryText;
-        }
-      }
-      const expression = trimmed + memoryText;
+      const expression =
+        endsOperand(trimmed) ? trimmed + '×' + memoryText : trimmed + memoryText;
       return record({
         ...state,
         expression,
-        lastOperation: state.lastOperation,
         error: null,
         preview: computePreview(expression, state.precision, state.angleMode),
       });
@@ -446,16 +471,18 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
     case 'MEMORY_STORE':
     case 'MEMORY_ADD':
     case 'MEMORY_SUBTRACT': {
+      // `result` has already been rounded to the display precision, so parsing
+      // it back would store 1/3 as 0.3333333333. Prefer the raw value and fall
+      // back to evaluating the live expression when nothing has been evaluated.
       const value =
-        state.result !== null
-          ? Number(state.result)
-          : (() => {
-              try {
-                return evaluateExpression(state.expression, { angleMode: state.angleMode });
-              } catch {
-                return NaN;
-              }
-            })();
+        state.resultValue ??
+        (() => {
+          try {
+            return evaluateExpression(state.expression, { angleMode: state.angleMode });
+          } catch {
+            return NaN;
+          }
+        })();
       if (!Number.isFinite(value)) return state;
       let memory = state.memory ?? 0;
       if (action.type === 'MEMORY_ADD') memory += value;
@@ -471,8 +498,14 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
         ...state,
         expression: entry.expression,
         result: null,
-        preview: entry.result,
+        resultValue: null,
+        // Recomputed rather than copied from the entry: the entry was written
+        // with whatever precision and angle mode were active back then.
+        preview: computePreview(entry.expression, state.precision, state.angleMode),
         error: null,
+        // The reused expression is unrelated to the operation that was pending,
+        // so `=` must evaluate it instead of repeating that one.
+        lastOperation: undefined,
       });
     }
 
@@ -500,19 +533,29 @@ export function calculatorReducer(state: CalculatorState, action: Action): Calcu
       return record({ ...state, mode: state.mode === 'basic' ? 'scientific' : 'basic' });
     }
 
-    case 'SET_MODE': {
-      if (state.mode === action.mode) return state;
-      return record({ ...state, mode: action.mode });
-    }
-
     case 'SET_ANGLE_MODE': {
       if (state.angleMode === action.mode) return state;
-      return record({ ...state, angleMode: action.mode });
+      // The live expression is trigonometric, so the preview has to be
+      // recomputed in the new unit. A settled result is left alone: it is a
+      // number now, not an angle.
+      return record({
+        ...state,
+        angleMode: action.mode,
+        preview: computePreview(state.expression, state.precision, action.mode),
+      });
     }
 
     case 'SET_PRECISION': {
       if (state.precision === action.precision) return state;
-      return record({ ...state, precision: action.precision });
+      return record({
+        ...state,
+        precision: action.precision,
+        preview: computePreview(state.expression, action.precision, state.angleMode),
+        // Re-format the settled result from its raw value rather than re-parsing
+        // the already-rounded string, which would bake in the old precision.
+        result:
+          state.resultValue === null ? state.result : formatNumber(state.resultValue, action.precision),
+      });
     }
 
     default:

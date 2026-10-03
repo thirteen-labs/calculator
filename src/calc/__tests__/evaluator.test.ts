@@ -44,6 +44,19 @@ describe('evaluateExpression', () => {
     expect(evaluateExpression('6!')).toBe(720);
   });
 
+  it('rejects factorials too large to be representable without looping forever', () => {
+    // The loop runs once per unit of n and n is user-typable, so an unbounded
+    // loop here would freeze the JS thread. 171! overflows a double.
+    expect(() => evaluateExpression('171!')).toThrow(CalcError);
+    expect(() => evaluateExpression('999999999!')).toThrow(CalcError);
+    expect(() => evaluateExpression('factorial(1e15)')).toThrow(CalcError);
+  });
+
+  it('rejects negative and fractional factorials', () => {
+    expect(() => evaluateExpression('(-3)!')).toThrow(CalcError);
+    expect(() => evaluateExpression('2.5!')).toThrow(CalcError);
+  });
+
   it('evaluates constants', () => {
     expect(evaluateExpression(PI)).toBe(Math.PI);
     expect(evaluateExpression('e')).toBe(Math.E);
@@ -185,5 +198,16 @@ describe('getLastOperation', () => {
   it('handles complex expressions', () => {
     const result = getLastOperation(`10 ${DIV} 2 + 3`);
     expect(result).toEqual({ operator: '+', operand: '3' });
+  });
+
+  it('captures a trailing trig operand in the active angle mode', () => {
+    const deg = getLastOperation('2 + sin(30)', { angleMode: 'DEG' });
+    expect(deg?.operator).toBe('+');
+    expect(Number(deg?.operand)).toBeCloseTo(0.5, 12);
+
+    // The bug this guards: without the mode, the operand was evaluated in
+    // radians, so `2 + sin(30)` in DEG repeated with sin(30 rad).
+    const rad = getLastOperation('2 + sin(30)', { angleMode: 'RAD' });
+    expect(Number(rad?.operand)).toBeCloseTo(-0.988031624, 9);
   });
 });

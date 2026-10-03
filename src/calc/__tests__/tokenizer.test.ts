@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { tokenize, insertImplicitMultiplication, type Token } from '../engine/tokenizer';
+import { tokenize, insertImplicitMultiplication } from '../engine/tokenizer';
 import { CalcError } from '../errors';
 
 describe('tokenize', () => {

@@ -20,6 +20,11 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/assets/(.*)$': '<rootDir>/assets/$1',
+    // Ships as untranspiled ESM, and only installs the SQLite-backed
+    // `localStorage` on native. Node tests inject their own `localStorage`
+    // stub, so stubbing the side-effecting install out is both accurate and
+    // keeps the calc tests running on a plain node environment.
+    '^expo-sqlite/localStorage/install$': '<rootDir>/src/testing/noop-module.js',
   },
   collectCoverageFrom: [
     'src/calc/**/*.ts',

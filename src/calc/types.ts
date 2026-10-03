@@ -57,7 +57,14 @@ export interface LastOperation {
 
 export interface CalculatorState {
   expression: string;
+  /** The formatted result, ready for display. */
   result: string | null;
+  /**
+   * The raw numeric result. `result` is rounded for display, so anything that
+   * needs full precision (memory, re-formatting after a precision change) must
+   * use this instead of parsing `result` back with `Number()`.
+   */
+  resultValue: number | null;
   preview: string | null;
 
   mode: CalculatorMode;
@@ -80,6 +87,7 @@ export type Snapshot = Pick<
   CalculatorState,
   | 'expression'
   | 'result'
+  | 'resultValue'
   | 'preview'
   | 'mode'
   | 'angleMode'

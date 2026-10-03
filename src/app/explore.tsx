@@ -1,27 +1,23 @@
-import { ScrollView, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Link } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemePicker } from '@/components/theme-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';import { useTheme } from '@/hooks/use-theme';
 import { useCalculator } from '@/hooks/use-calculator';
 
 export default function SettingsScreen() {
   const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
   const theme = useTheme();
   const { state } = useCalculator();
 
   return (
     <ScrollView
       style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={styles.contentContainer}>
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[styles.contentContainer, { paddingBottom: safeAreaInsets.bottom + Spacing.three }]}>
       <ThemedView style={styles.container}>
         <ThemedView style={styles.titleContainer}>
           <ThemedText type="subtitle">Settings</ThemedText>
@@ -57,9 +53,19 @@ export default function SettingsScreen() {
                 </ThemedText>
               ) : (
                 <ThemedText type="small" themeColor="textSecondary">
-                  {state.history.length} calculations
+                  {state.history.length} calculation{state.history.length === 1 ? '' : 's'} saved
                 </ThemedText>
               )}
+              <Link href="/history" asChild>
+                <Pressable
+                  accessibilityRole="link"
+                  style={({ pressed }) => [styles.historyLink, { opacity: pressed ? 0.6 : 1 }]}
+                >
+                  <ThemedText type="linkPrimary" style={styles.historyLinkLabel}>
+                    Open history
+                  </ThemedText>
+                </Pressable>
+              </Link>
             </ThemedView>
           </ThemedView>
         </ThemedView>
@@ -110,5 +116,11 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     borderRadius: Spacing.three,
     gap: Spacing.two,
+  },
+  historyLink: {
+    alignSelf: 'flex-start',
+  },
+  historyLinkLabel: {
+    fontWeight: '600',
   },
 });
