@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import type { CalculatorState, Action } from '@/calc';
 import type { ThemeColors } from './calculator';
 import { formatNumber } from '@/calc/engine';
@@ -31,6 +32,12 @@ export function PanelBar({ panel, setPanel, state, dispatch, theme, keypadWidth 
           label={state.memory !== null ? 'Memory •' : 'Memory'}
           active={panel === 'memory'}
           onPress={toggle}
+          theme={theme}
+        />
+        <PanelButton
+          label="Settings"
+          active={false}
+          onPress={() => router.navigate('/explore')}
           theme={theme}
         />
         <PanelButton
@@ -133,10 +140,10 @@ function MemoryButton({
 
 const styles = StyleSheet.create({
   root: {
-    // Fixed when closed so the display + panel bar + keypad split the screen
-    // deterministically; opening the memory panel grows the row and the keypad,
-    // being the only flexible child, gives the space back.
-    height: PANEL_BAR_HEIGHT,
+    // Min-height, not fixed height: closed it is exactly PANEL_BAR_HEIGHT tall,
+    // and opening the memory panel grows the row past it, which the keypad —
+    // the only flexible child — absorbs by shrinking.
+    minHeight: PANEL_BAR_HEIGHT,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',

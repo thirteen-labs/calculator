@@ -2,6 +2,9 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // Jest transpiles per-file (no emit anywhere); full type checking is done
+    // by `tsc --noEmit` / `expo lint`.
+    "isolatedModules": true,
     "paths": {
       "@/*": [
         "./src/*"

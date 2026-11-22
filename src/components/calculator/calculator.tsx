@@ -3,7 +3,7 @@ import { View, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCalculator } from '@/hooks/use-calculator';
 import { useTheme } from '@/hooks/use-theme';
-import { Display, DISPLAY_HEIGHT } from './display';
+import { Display } from './display';
 import { Keypad } from './keypad';
 import { PanelBar } from './panels';
 import type { Palette } from '@/constants/theme';

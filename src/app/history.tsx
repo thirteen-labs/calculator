@@ -7,7 +7,7 @@ import {
   View,
   type ListRenderItemInfo,
 } from 'react-native';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCalculator } from '@/hooks/use-calculator';
@@ -83,6 +83,17 @@ export default function HistoryScreen() {
         ]}
         ListHeaderComponent={
           <View style={styles.header}>
+            <Link href="/" asChild>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel="Back to calculator"
+                style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Text style={[styles.backLabel, { color: theme.textSecondary }]}>
+                  Back to calculator
+                </Text>
+              </Pressable>
+            </Link>
             <Text style={[styles.title, { color: theme.text }]}>History</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
               {state.history.length === 0
@@ -150,7 +161,6 @@ export default function HistoryScreen() {
             </Text>
           </View>
         }
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
   );
@@ -263,6 +273,13 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
     paddingBottom: Spacing.two,
   },
+  backButton: {
+    alignSelf: 'flex-start',
+  },
+  backLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
   title: {
     fontSize: 32,
     fontWeight: '600',
@@ -308,9 +325,6 @@ const styles = StyleSheet.create({
   cancelLabel: {
     fontSize: 14,
     fontWeight: '500',
-  },
-  separator: {
-    height: Spacing.two,
   },
   row: {
     flexDirection: 'row',

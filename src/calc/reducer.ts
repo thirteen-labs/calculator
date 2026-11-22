@@ -145,16 +145,25 @@ function appendParen(expression: string, paren: '(' | ')'): string {
 function appendNegative(expression: string): string {
   const trimmed = trimEnd(expression);
   if (trimmed === '') return '-';
-  const last = trimmed[trimmed.length - 1];
   const { number, start } = getCurrentNumber(expression);
 
-  if (number !== '' && start > 0) {
-    const before = expression[start - 1];
+  if (number !== '' && number.startsWith('-')) {
+    // `getCurrentNumber` consumed a unary minus, so the operand already has
+    // one: strip it (`-5` -> `5`) or clear a lone trailing `-`.
+    return expression.slice(0, start);
+  }
+
+  if (number !== '') {
+    // No stored sign yet: a leading operand (`start === 0`) or one behind an
+    // operator gets one (`5` -> `-5`, `2+5` -> `2+-5`).
+    const before = start > 0 ? expression[start - 1] : '';
     if (before !== '-' && before !== '−') {
       return expression.slice(0, start) + '-' + number;
     }
+    return expression;
   }
 
+  const last = trimmed[trimmed.length - 1];
   if (OPERATOR_CHARS.has(last) || last === '(') {
     return expression + '-';
   }

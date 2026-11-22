@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('jest').Config} */
 module.exports = {
   preset: 'ts-jest',
@@ -9,6 +11,10 @@ module.exports = {
       'ts-jest',
       {
         tsconfig: {
+          // Isolated transpilation means there is no program to derive this
+          // from; pin it so TS5011 stays quiet. `__dirname` resolves to the
+          // jest root, the directory jest.config.js lives in.
+          rootDir: path.resolve(__dirname), // eslint-disable-line no-undef
           paths: {
             '@/*': ['./src/*'],
             '@/assets/*': ['./assets/*'],

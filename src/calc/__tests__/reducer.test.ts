@@ -86,6 +86,28 @@ describe('calculatorReducer - INPUT actions', () => {
     expect(state.expression).toBe('-');
   });
 
+  it('negates a leading operand instead of no-opping', () => {
+    let state = pressActions([
+      { type: 'INPUT_DIGIT', digit: '5' },
+      { type: 'INPUT_NEGATIVE' },
+    ]);
+    expect(state.expression).toBe('-5');
+
+    // The negative key toggles: pressing it on a lone `-` clears the sign.
+    state = pressActions([{ type: 'INPUT_NEGATIVE' }], state);
+    expect(state.expression).toBe('');
+  });
+
+  it('negates the right operand after an operator', () => {
+    const state = pressActions([
+      { type: 'INPUT_DIGIT', digit: '5' },
+      { type: 'INPUT_OPERATOR', operator: '+' },
+      { type: 'INPUT_DIGIT', digit: '3' },
+      { type: 'INPUT_NEGATIVE' },
+    ]);
+    expect(state.expression).toBe('5 + -3');
+  });
+
   it('inputs functions', () => {
     const state = pressActions([
       { type: 'INPUT_FUNCTION', fn: 'sqrt' },

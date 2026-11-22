@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemePicker } from '@/components/theme-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';import { useTheme } from '@/hooks/use-theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { useCalculator } from '@/hooks/use-calculator';
 
 export default function SettingsScreen() {
@@ -20,6 +21,16 @@ export default function SettingsScreen() {
       contentContainerStyle={[styles.contentContainer, { paddingBottom: safeAreaInsets.bottom + Spacing.three }]}>
       <ThemedView style={styles.container}>
         <ThemedView style={styles.titleContainer}>
+          <Link href="/" asChild>
+            <Pressable
+              accessibilityRole="link"
+              style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
+            >
+              <ThemedText type="small" themeColor="textSecondary">
+                Back to calculator
+              </ThemedText>
+            </Pressable>
+          </Link>
           <ThemedText type="subtitle">Settings</ThemedText>
           <ThemedText style={styles.centerText} themeColor="textSecondary">
             Customize the look and feel of the calculator.
@@ -122,5 +133,8 @@ const styles = StyleSheet.create({
   },
   historyLinkLabel: {
     fontWeight: '600',
+  },
+  backLink: {
+    alignSelf: 'flex-start',
   },
 });

@@ -1,8 +1,8 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
 import { CalculatorProvider } from '@/components/calculator-provider';
 import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/components/theme-provider';
 
@@ -15,13 +15,14 @@ function NavigationTheme() {
     <ThemeProvider value={mode === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
       <CalculatorProvider>
-        <AppTabs />
+        {/* Headers stay hidden so each screen owns its own chrome. */}
+        <Stack screenOptions={{ headerShown: false }} />
       </CalculatorProvider>
     </ThemeProvider>
   );
 }
 
-export default function TabLayout() {
+export default function RootLayout() {
   return (
     <AppThemeProvider>
       <NavigationTheme />
